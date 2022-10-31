@@ -1,0 +1,53 @@
+---
+services:
+  es01:
+    container_name: es01
+    environment:
+      - node.name=es01
+      - discovery.seed_hosts=es02
+      - "cluster.initial_master_nodes=es01,es02"
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=false
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.1.1"
+    ports:
+      - "9200:9200"
+  es02:
+    container_name: es02
+    environment:
+      - node.name=es02
+      - discovery.seed_hosts=es01
+      - "cluster.initial_master_nodes=es01,es02"
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=false
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.1.1"
+    ports:
+      - 9200
+  kibana:
+    environment:
+      ELASTICSEARCH_HOSTS: "http://es01:9200"
+    image: "docker.elastic.co/kibana/kibana:7.1.1"
+    ports:
+      - "5601:5601"
+  redis-master:
+    image: redis
+    ports:
+      - "6379:6379"
+  redis-slave:
+    command: "bash -c \"redis-server --slaveof $$REDIS_MASTER_HOST 6379\""
+    environment:
+      REDIS_MASTER_HOST: redis-master
+    image: redis
+    ports:
+      - 6379
+  web-server:
+    command: "interactive ingress"
+    environment:
+      ELASTICSEARCH_HOSTS: "http://es01:9200"
+      KUBERNETES_SERVICE_HOST: "any string here"
+      KUBERNETES_SERVICE_PORT: "any thing here"
+      REDIS_MASTER_HOST: redis-master
+      REDIS_SLAVE_HOST: redis-slave
+    image: "quay.io/myafk/interactive:stable"
+    ports:
+      - "8085:8085"
+version: "3"
