@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: web-server
+  name: web-server
+  namespace: kube-logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server
+  template:
+    metadata:
+      labels:
+        app: web-server
+    spec:
+      containers:
+        - args:
+            - interactive
+            - ingress
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  key: ELASTICSEARCH_HOSTS
+                  name: env-config
+            - name: KUBERNETES_SERVICE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: KUBERNETES_SERVICE_HOST
+                  name: env-config
+            - name: KUBERNETES_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: KUBERNETES_SERVICE_PORT
+                  name: env-config
+            - name: REDIS_MASTER_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: REDIS_MASTER_HOST
+                  name: env-config
+            - name: REDIS_SLAVE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: REDIS_SLAVE_HOST
+                  name: env-config
+          image: quay.io/myafk/interactive:stable
+          name: web-server

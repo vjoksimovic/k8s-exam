@@ -1,0 +1,91 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: es
+  namespace: kube-logging
+spec:
+  selector:
+    matchLabels:
+      app: es
+  serviceName: es
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: es
+    spec:
+      containers:
+        - name: es
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.1.1
+          resources:
+            limits:
+              cpu: 1000m
+            requests:
+              cpu: 100m
+          ports:
+            - containerPort: 9200
+              name: rest
+              protocol: TCP
+            - containerPort: 9300
+              name: inter-node
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/elasticsearch/data
+          env:
+            - name: bootstrap.memory_lock
+              valueFrom:
+                configMapKeyRef:
+                  key: bootstrap.memory_lock
+                  name: env-config
+            - name: cluster.initial_master_nodes
+              valueFrom:
+                configMapKeyRef:
+                  key: cluster.initial_master_nodes
+                  name: env-config
+            - name: cluster.name
+              valueFrom:
+                configMapKeyRef:
+                  key: cluster.name
+                  name: env-config
+            - name: discovery.seed_hosts
+              valueFrom:
+                configMapKeyRef:
+                  key: discovery.seed_hosts
+                  name: env-config
+            - name: node.name
+              valueFrom:
+                configMapKeyRef:
+                  key: node.name
+                  name: env-config
+      initContainers:
+        - name: fix-premissions
+          image: busybox
+          command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/elasticsearch/data
+        - name: increase-vm-max-map
+          image: busybox
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
+          securityContext:
+            privileged: true
+        - name: increase-fd-ulimit
+          image: busybox
+          command: ["sh", "-c", "ulimit -n 65536"]
+          securityContext:
+            privileged: true
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: es
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 10Gi
