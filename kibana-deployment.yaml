@@ -24,6 +24,11 @@ spec:
                   key: ELASTICSEARCH_HOSTS
                   name: env-config
           image: docker.elastic.co/kibana/kibana:7.1.1
+          resources:
+            limits:
+              cpu: 1000m
+            requests:
+              cpu: 100m
           name: kibana
           ports:
             - containerPort: 5601
